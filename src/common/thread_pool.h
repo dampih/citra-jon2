@@ -14,7 +14,7 @@
 
 namespace Common {
 
-class ThreadPool {
+class ThreadPool : NonCopyable {
 private:
     explicit ThreadPool(unsigned int num_threads) :
         num_threads(num_threads),
