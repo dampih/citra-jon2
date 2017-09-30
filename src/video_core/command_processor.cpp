@@ -424,16 +424,15 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
         auto& thread_pool = Common::ThreadPool::GetPool();
         std::vector<std::future<void>> futures;
 
-        constexpr unsigned int MIN_VERTICES_PER_THREAD = 20;
-        unsigned int num_threads = regs.pipeline.num_vertices / MIN_VERTICES_PER_THREAD +
-                                   (regs.pipeline.num_vertices % MIN_VERTICES_PER_THREAD != 0);
-        num_threads = std::min(num_threads, std::thread::hardware_concurrency() - 1);
+        constexpr unsigned int MIN_VERTICES_PER_THREAD = 10;
+        unsigned int vs_threads = regs.pipeline.num_vertices / MIN_VERTICES_PER_THREAD;
+        vs_threads = std::min(vs_threads, std::thread::hardware_concurrency() - 1);
 
-        if (num_threads <= 1) {
+        if (!vs_threads) {
             VSUnitLoop(0, std::integral_constant<u32, 1>{});
         } else {
-            for (unsigned int thread_id = 0; thread_id < num_threads; ++thread_id) {
-                futures.emplace_back(thread_pool.push(VSUnitLoop, thread_id, num_threads));
+            for (unsigned int thread_id = 0; thread_id < vs_threads; ++thread_id) {
+                futures.emplace_back(thread_pool.push(VSUnitLoop, thread_id, vs_threads));
             }
         }
 
@@ -447,7 +446,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
             }
 
             // Synchronize threads
-            if (num_threads != 1) {
+            if (vs_threads) {
                 while (cached_vertex.batch.load(std::memory_order_acquire) != batch_id) {
                     std::this_thread::yield();
                 }
