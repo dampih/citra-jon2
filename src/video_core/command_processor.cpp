@@ -352,10 +352,6 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
         shader_engine->SetupBatch(g_state.vs, regs.vs.main_offset);
 
         const bool use_gs = regs.pipeline.use_gs == PipelineRegs::UseGS::Yes;
-        g_state.geometry_pipeline.Reconfigure();
-        g_state.geometry_pipeline.Setup(shader_engine);
-        if (g_state.geometry_pipeline.NeedIndexInput())
-            ASSERT(is_indexed);
 
         auto VSUnitLoop = [&](u32 thread_id, auto num_threads) {
             constexpr bool single_thread = std::is_same_v<std::integral_constant<u32, 1>, decltype(num_threads)>;
@@ -435,6 +431,11 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
                 futures.emplace_back(thread_pool.push(VSUnitLoop, thread_id, vs_threads));
             }
         }
+
+        g_state.geometry_pipeline.Reconfigure();
+        g_state.geometry_pipeline.Setup(shader_engine);
+        if (g_state.geometry_pipeline.NeedIndexInput())
+            ASSERT(is_indexed);
 
         for (unsigned int index = 0; index < regs.pipeline.num_vertices; ++index) {
             unsigned int vertex = VertexIndex(index);
