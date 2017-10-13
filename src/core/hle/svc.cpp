@@ -705,6 +705,7 @@ static ResultCode CreateThread(Kernel::Handle* out_handle, u32 priority, u32 ent
     case THREADPROCESSORID_DEFAULT:
     case THREADPROCESSORID_0:
     case THREADPROCESSORID_1:
+    case THREADPROCESSORID_2:
         break;
     default:
         // TODO(bunnei): Implement support for other processor IDs
@@ -727,6 +728,18 @@ static ResultCode CreateThread(Kernel::Handle* out_handle, u32 priority, u32 ent
     if (processor_id == THREADPROCESSORID_1) {
         LOG_ERROR(Kernel_SVC,
                   "Newly created thread must run in the SysCore (Core1), unimplemented.");
+    }
+
+    if (processor_id == THREADPROCESSORID_DEFAULT &&
+        Kernel::g_current_process->ideal_processor == THREADPROCESSORID_2) {
+        LOG_WARNING(
+            Kernel_SVC,
+            "Newly created thread is allowed to be run in the SysCore (Core2), unimplemented.");
+    }
+
+    if (processor_id == THREADPROCESSORID_2) {
+        LOG_ERROR(Kernel_SVC,
+            "Newly created thread must run in the SysCore (Core2), unimplemented.");
     }
 
     CASCADE_RESULT(SharedPtr<Thread> thread,
